@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Expense Tracker</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --card: #ffffff; --ink: #1a1a2e; --muted: #6b7280;
+    --accent: #4f46e5; --accent-light: #eef2ff; --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); margin: 0; color: var(--ink); }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 60px; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .userbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--muted); }
+  .tab.active { background: var(--accent); color: white; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; color: var(--muted); }
+  input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; margin-bottom: 14px; }
+  .cat-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .chip { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; background: white; }
+  .chip.selected { background: var(--accent); color: white; border-color: var(--accent); }
+  button.primary { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .entry { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+  .entry:last-child { border-bottom: none; }
+  .entry-left { display: flex; align-items: flex-start; gap: 10px; }
+  .entry-cat { font-size: 12px; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 6px; margin-right: 6px; }
+  .entry-amt { font-weight: 600; white-space: nowrap; }
+  .entry-actions { display: flex; align-items: center; gap: 10px; }
+  .del-btn { color: #dc2626; font-size: 12px; cursor: pointer; }
+  .total-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 14px; }
+  .total-row .bar-bg { flex: 1; height: 8px; background: var(--accent-light); border-radius: 4px; margin: 0 10px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; flex-shrink: 0; }
+  .sync-dot.done { background: #22c55e; }
+  .sync-dot.pending { background: #f59e0b; }
+  .grand { font-size: 26px; font-weight: 700; }
+  .month-row { font-size: 13px; margin-bottom: 6px; }
+  #status { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  #syncStatus { font-size: 12px; margin-top: 6px; }
+  .filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .filter-row select { margin-bottom: 0; flex: 1; }
+  .danger-btn { background: #dc2626; color: white; border: none; padding: 9px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .link { color: var(--accent); cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>💰 Expense Tracker</h1>
+  <div class="userbar">
+    <span id="userLabel" class="sub" style="margin:0"></span>
+    <span id="changeUserBtn" class="link sub" style="margin:0">Change name</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="add">Add Expense</div>
+    <div class="tab" data-tab="analysis">Analysis</div>
+    <div class="tab" data-tab="history">History</div>
+  </div>
+
+  <!-- ADD TAB -->
+  <div id="add" class="tab-panel">
+    <div class="card">
+      <div id="lastSyncedMini" class="sub" style="margin-bottom:14px"></div>
+
+      <label>Amount (₹)</label>
+      <input type="number" id="amount" placeholder="e.g. 450" step="0.01">
+
+      <label>Category</label>
+      <div class="cat-picker" id="catPicker"></div>
+
+      <label>Date</label>
+      <input type="date" id="date">
+
+      <label>Note (optional)</label>
+      <input type="text" id="note" placeholder="e.g. Lunch with client">
+
+      <button class="primary" id="saveBtn">Save Expense</button>
+      <div id="status"></div>
+      <div id="syncStatus"></div>
+    </div>
+  </div>
+
+  <!-- ANALYSIS TAB -->
+  <div id="analysis" class="tab-panel" style="display:none">
+    <div class="card">
+      <div class="filter-row">
+        <select id="userFilterAnalysis"><option value="all">All family members</option></select>
+      </div>
+      <div class="grand" id="grandTotal">₹0</div>
+      <div class="sub">Total spent</div>
+    </div>
+    <div class="card">
+      <strong>Totals by Category</strong>
+      <div id="catTotals" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <strong>Totals by Person</strong>
+      <div id="userTotals" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <strong>Monthly Trend</strong>
+      <div id="monthTrend" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div id="history" class="tab-panel" style="display:none">
+    <div class="card">
+      <div id="lastSynced" class="sub" style="margin-bottom:12px"></div>
+
+      <div class="filter-row">
+        <select id="userFilter"><option value="all">All family members</option></select>
+        <button id="deleteSelectedBtn" class="danger-btn">Delete Selected</button>
+      </div>
+
+      <div id="entryList"></div>
+    </div>
+    <button class="primary" id="exportBtn">⬇ Export as Spreadsheet (CSV)</button>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// CONFIG — paste your deployed Apps Script Web App URL here
+// =====================================================================
+const SHEET_SYNC_URL = 'https://script.google.com/macros/s/AKfycbzoDSwnUgwXFfg4TPG8AJSuSVbKXgjsnV7yHRWd17UxASlSWrMEZfjqg4ti81pX2d-n/exec';
+
+const CATEGORIES = ["Food","Travel","Utilities","Shopping","Health","Entertainment","Rent","Other"];
+
+let myEntries = [];          // entries added on this device
+let remoteEntries = [];      // combined entries pulled from the Sheet
+let selectedCat = CATEGORIES[0];
+let syncQueue = [];
+let isSyncing = false;
+let flushTimer = null;
+let lastSyncedAt = localStorage.getItem('lastSyncedAt') || null;
+let currentUser = localStorage.getItem('currentUser') || null;
+let activeUserFilter = 'all';       // History tab filter
+let activeUserFilterAnalysis = 'all'; // Analysis tab filter
+let selectedIds = new Set();
+
+// ---------- User identity ----------
+function ensureUser() {
+  if (!currentUser) {
+    currentUser = prompt("What's your name? (used to label your entries)") || 'Anonymous';
+    localStorage.setItem('currentUser', currentUser);
+  }
+  document.getElementById('userLabel').textContent = `Logged in as ${currentUser}`;
+}
+document.getElementById('changeUserBtn').onclick = () => {
+  const name = prompt("Change your name:", currentUser);
+  if (name) { currentUser = name; localStorage.setItem('currentUser', currentUser); ensureUser(); }
+};
+
+// ---------- Local persistence ----------
+function loadEntries() {
+  const raw = localStorage.getItem('myExpenses');
+  myEntries = raw ? JSON.parse(raw) : [];
+}
+function persistEntries() {
+  localStorage.setItem('myExpenses', JSON.stringify(myEntries));
+}
+
+// ---------- Combined dataset ----------
+function combinedEntries() {
+  const map = new Map();
+  remoteEntries.forEach(e => map.set(e.id, e));
+  myEntries.forEach(e => { if (!map.has(e.id)) map.set(e.id, e); }); // include not-yet-synced local entries
+  return [...map.values()].sort((a,b) => new Date(b.date) - new Date(a.date));
+}
+
+async function fetchRemoteEntries() {
+  try {
+    const res = await fetch(SHEET_SYNC_URL);
+    const result = await res.json();
+    if (result.status === 'ok') {
+      remoteEntries = result.entries;
+      if (document.getElementById('history').style.display !== 'none') renderHistory();
+      if (document.getElementById('analysis').style.display !== 'none') renderAnalysis();
+    }
+  } catch (err) { /* offline — keep showing last known data */ }
+}
+setInterval(fetchRemoteEntries, 20000);
+
+// ---------- Background sync (new entries) ----------
+function queueForSync(entry) { syncQueue.push(entry); }
+function scheduleSync() { clearTimeout(flushTimer); flushTimer = setTimeout(attemptSync, 2000); }
+
+async function attemptSync() {
+  if (isSyncing || syncQueue.length === 0) return;
+  isSyncing = true;
+  const batch = [...syncQueue];
+  try {
+    const res = await fetch(SHEET_SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(batch)
+    });
+    const result = await res.json();
+    if (result.status === 'ok') {
+      syncQueue = syncQueue.filter(e => !batch.includes(e));
+      batch.forEach(e => { e.synced = true; });
+      persistEntries();
+      lastSyncedAt = new Date().toISOString();
+      localStorage.setItem('lastSyncedAt', lastSyncedAt);
+      renderSyncIndicators();
+      fetchRemoteEntries();
+      updateSyncStatus(`✓ Synced ${batch.length} entr${batch.length > 1 ? 'ies' : 'y'} to Google Sheets`);
+    } else { throw new Error(result.message); }
+  } catch (err) {
+    updateSyncStatus('⚠ Sync failed — will retry automatically', true);
+  } finally { isSyncing = false; }
+}
+
+setInterval(() => {
+  const unsynced = myEntries.filter(e => !e.synced);
+  if (unsynced.length) { syncQueue = [...new Set([...syncQueue, ...unsynced])]; attemptSync(); }
+}, 15000);
+setInterval(renderSyncIndicators, 30000);
+
+function updateSyncStatus(msg, isError = false) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? '#dc2626' : '#22c55e';
+  setTimeout(() => el.textContent = '', 4000);
+}
+
+// ---------- Sync indicator ----------
+function syncIndicatorHTML() {
+  const unsyncedCount = myEntries.filter(e => !e.synced).length;
+  if (lastSyncedAt) {
+    return `<span class="sync-dot done"></span>Last synced: ${formatRelativeTime(lastSyncedAt)}${unsyncedCount > 0 ? ` · <span style="color:#f59e0b">${unsyncedCount} pending</span>` : ''}`;
+  }
+  return `<span class="sync-dot pending"></span>Not synced yet`;
+}
+function renderSyncIndicators() {
+  const historyEl = document.getElementById('lastSynced');
+  const miniEl = document.getElementById('lastSyncedMini');
+  const html = syncIndicatorHTML();
+  if (historyEl) historyEl.innerHTML = html;
+  if (miniEl) miniEl.innerHTML = html;
+}
+function formatRelativeTime(isoString) {
+  const sec = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
+  if (sec < 10) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60); if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60); if (hr < 24) return `${hr}h ago`;
+  return `${Math.floor(hr / 24)}d ago`;
+}
+
+// ---------- Category picker ----------
+function renderCatPicker() {
+  const el = document.getElementById('catPicker');
+  el.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (cat === selectedCat ? ' selected' : '');
+    chip.textContent = cat;
+    chip.onclick = () => { selectedCat = cat; renderCatPicker(); };
+    el.appendChild(chip);
+  });
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    document.getElementById(tab.dataset.tab).style.display = 'block';
+    if (tab.dataset.tab === 'analysis') { fetchRemoteEntries(); renderAnalysis(); }
+    if (tab.dataset.tab === 'history') { fetchRemoteEntries(); renderHistory(); }
+  };
+});
+
+// ---------- Save entry ----------
+document.getElementById('saveBtn').onclick = () => {
+  const amount = parseFloat(document.getElementById('amount').value);
+  const date = document.getElementById('date').value || new Date().toISOString().slice(0,10);
+  const note = document.getElementById('note').value;
+  if (!amount || amount <= 0) { document.getElementById('status').textContent = 'Please enter a valid amount.'; return; }
+
+  const entry = { id: crypto.randomUUID(), amount, category: selectedCat, date, note, user: currentUser, synced: false };
+  myEntries.unshift(entry);
+  persistEntries();
+  queueForSync(entry);
+  scheduleSync();
+  renderSyncIndicators();
+
+  document.getElementById('amount').value = '';
+  document.getElementById('note').value = '';
+  document.getElementById('status').textContent = '✓ Saved locally — syncing to Google Sheets...';
+  setTimeout(() => document.getElementById('status').textContent = '', 2500);
+};
+
+// ---------- Filters ----------
+document.getElementById('userFilter').onchange = (e) => { activeUserFilter = e.target.value; renderHistory(); };
+document.getElementById('userFilterAnalysis').onchange = (e) => { activeUserFilterAnalysis = e.target.value; renderAnalysis(); };
+
+function populateUserFilters() {
+  const users = [...new Set(combinedEntries().map(e => e.user))].sort();
+  [['userFilter', activeUserFilter], ['userFilterAnalysis', activeUserFilterAnalysis]].forEach(([id, current]) => {
+    const select = document.getElementById(id);
+    select.innerHTML = '<option value="all">All family members</option>' +
+      users.map(u => `<option value="${u}">${u}</option>`).join('');
+    select.value = users.includes(current) ? current : 'all';
+  });
+}
+
+// ---------- Analysis ----------
+function renderAnalysis() {
+  populateUserFilters();
+  let all = combinedEntries();
+  if (activeUserFilterAnalysis !== 'all') all = all.filter(e => e.user === activeUserFilterAnalysis);
+
+  const grand = all.reduce((s,e) => s + Number(e.amount), 0);
+  document.getElementById('grandTotal').textContent = '₹' + grand.toLocaleString('en-IN', {maximumFractionDigits:2});
+
+  const byCat = {};
+  all.forEach(e => byCat[e.category] = (byCat[e.category]||0) + Number(e.amount));
+  const maxCat = Math.max(1, ...Object.values(byCat));
+  document.getElementById('catTotals').innerHTML = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([cat,amt]) => `
+    <div class="total-row"><span style="width:100px">${cat}</span>
+    <div class="bar-bg"><div class="bar-fill" style="width:${(amt/maxCat*100)}%"></div></div>
+    <span>₹${amt.toLocaleString('en-IN')}</span></div>`).join('') || '<div class="sub">No entries yet</div>';
+
+  const byMonth = {};
+  all.forEach(e => { const m = e.date.slice(0,7); byMonth[m] = (byMonth[m]||0) + Number(e.amount); });
+  const months = Object.keys(byMonth).sort();
+  const maxMonth = Math.max(1, ...Object.values(byMonth));
+  document.getElementById('monthTrend').innerHTML = months.map(m => `
+    <div class="month-row"><div style="display:flex;justify-content:space-between;margin-bottom:3px">
+    <span>${m}</span><span>₹${byMonth[m].toLocaleString('en-IN')}</span></div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${(byMonth[m]/maxMonth*100)}%"></div></div></div>`).join('') || '<div class="sub">No entries yet</div>';
+
+  const byUser = {};
+  all.forEach(e => byUser[e.user] = (byUser[e.user]||0) + Number(e.amount));
+  const maxUser = Math.max(1, ...Object.values(byUser));
+  document.getElementById('userTotals').innerHTML = Object.entries(byUser).sort((a,b)=>b[1]-a[1]).map(([user,amt]) => `
+    <div class="total-row"><span style="width:100px">${user}</span>
+    <div class="bar-bg"><div class="bar-fill" style="width:${(amt/maxUser*100)}%"></div></div>
+    <span>₹${amt.toLocaleString('en-IN')}</span></div>`).join('') || '<div class="sub">No entries yet</div>';
+}
+
+// ---------- History ----------
+function renderHistory() {
+  renderSyncIndicators();
+  populateUserFilters();
+
+  let all = combinedEntries();
+  if (activeUserFilter !== 'all') all = all.filter(e => e.user === activeUserFilter);
+
+  document.getElementById('entryList').innerHTML = all.map(e => `
+    <div class="entry">
+      <div class="entry-left">
+        <input type="checkbox" data-id="${e.id}" ${selectedIds.has(e.id) ? 'checked' : ''}>
+        <div>
+          <span class="sync-dot ${e.synced ? 'done' : 'pending'}"></span>
+          <span class="entry-cat">${e.category}</span>
+          <strong>${e.user}</strong> — ${e.note ? e.note : ''}
+          <div class="sub" style="margin:0">${e.date}</div>
+        </div>
+      </div>
+      <div class="entry-actions">
+        <span class="entry-amt">₹${Number(e.amount).toLocaleString('en-IN')}</span>
+        <span class="del-btn" data-del="${e.id}">Delete</span>
+      </div>
+    </div>`).join('') || '<div class="sub">No entries found</div>';
+
+  document.querySelectorAll('#entryList input[type="checkbox"]').forEach(cb => {
+    cb.onchange = () => { cb.checked ? selectedIds.add(cb.dataset.id) : selectedIds.delete(cb.dataset.id); };
+  });
+  document.querySelectorAll('.del-btn').forEach(btn => {
+    btn.onclick = () => deleteEntries([btn.dataset.del]);
+  });
+}
+
+// ---------- Delete (single + bulk) ----------
+document.getElementById('deleteSelectedBtn').onclick = () => {
+  if (selectedIds.size === 0) { alert('Select at least one entry first.'); return; }
+  deleteEntries([...selectedIds]);
+};
+
+async function deleteEntries(ids) {
+  if (!confirm(`Delete ${ids.length} entr${ids.length > 1 ? 'ies' : 'y'}? This can't be undone.`)) return;
+
+  myEntries = myEntries.filter(e => !ids.includes(e.id));
+  remoteEntries = remoteEntries.filter(e => !ids.includes(e.id));
+  persistEntries();
+  ids.forEach(id => selectedIds.delete(id));
+  renderHistory();
+  renderAnalysis();
+
+  try {
+    const res = await fetch(SHEET_SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', ids })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    updateSyncStatus(`✓ Deleted ${result.deleted} entr${result.deleted > 1 ? 'ies' : 'y'} from Sheet`);
+  } catch (err) {
+    updateSyncStatus('⚠ Delete failed to sync — removed locally only', true);
+  }
+}
+
+// ---------- CSV export ----------
+document.getElementById('exportBtn').onclick = () => {
+  const all = combinedEntries();
+  const header = 'Date,User,Category,Amount,Note\n';
+  const rows = all.map(e => `${e.date},${e.user},${e.category},${e.amount},"${(e.note||'').replace(/"/g,'""')}"`).join('\n');
+  const blob = new Blob([header + rows], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'expenses.csv'; a.click();
+};
+
+// ---------- Init ----------
+document.getElementById('date').value = new Date().toISOString().slice(0,10);
+ensureUser();
+loadEntries();
+renderCatPicker();
+fetchRemoteEntries();
+renderHistory();
+renderSyncIndicators();
+</script>
+</body>
+</html>
