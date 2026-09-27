@@ -2,35 +2,40 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Expense Tracker</title>
 <style>
   :root {
     --bg: #f7f8fa; --card: #ffffff; --ink: #1a1a2e; --muted: #6b7280;
     --accent: #4f46e5; --accent-light: #eef2ff; --border: #e5e7eb;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
   body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); margin: 0; color: var(--ink); }
   .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 60px; }
   h1 { font-size: 22px; margin-bottom: 4px; }
   .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
-  .userbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-  .tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--muted); }
+  .userbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 6px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab { padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap; min-height: 40px; display: flex; align-items: center; }
   .tab.active { background: var(--accent); color: white; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
   label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; color: var(--muted); }
-  input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; margin-bottom: 14px; }
+  input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; margin-bottom: 14px; }
   .cat-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-  .chip { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; background: white; }
+  .chip { padding: 9px 15px; border-radius: 20px; border: 1px solid var(--border); font-size: 14px; cursor: pointer; background: white; min-height: 38px; display: flex; align-items: center; }
   .chip.selected { background: var(--accent); color: white; border-color: var(--accent); }
-  button.primary { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .entry { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+  .chip.add-chip { border-style: dashed; color: var(--accent); border-color: var(--accent); }
+  button.primary { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 8px; width: 100%; font-size: 15px; font-weight: 600; cursor: pointer; min-height: 48px; }
+  .entry { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); gap: 10px; flex-wrap: wrap; }
   .entry:last-child { border-bottom: none; }
-  .entry-left { display: flex; align-items: flex-start; gap: 10px; }
-  .entry-cat { font-size: 12px; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 6px; margin-right: 6px; }
+  .entry-left { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+  .entry-cat { font-size: 12px; background: var(--accent-light); color: var(--accent); padding: 3px 8px; border-radius: 6px; margin-right: 6px; display: inline-block; }
+  .editable-cat { cursor: pointer; border: 1px dashed var(--accent); }
+  .cat-edit-select { display: inline-block; width: auto; font-size: 12px; padding: 3px 6px; margin: 0 6px 0 0; }
   .entry-amt { font-weight: 600; white-space: nowrap; }
-  .entry-actions { display: flex; align-items: center; gap: 10px; }
-  .del-btn { color: #dc2626; font-size: 12px; cursor: pointer; }
+  .entry-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+  .del-btn { color: #dc2626; font-size: 13px; cursor: pointer; padding: 4px 0; }
   .total-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 14px; }
   .total-row .bar-bg { flex: 1; height: 8px; background: var(--accent-light); border-radius: 4px; margin: 0 10px; overflow: hidden; }
   .bar-fill { height: 100%; background: var(--accent); }
@@ -41,10 +46,22 @@
   .month-row { font-size: 13px; margin-bottom: 6px; }
   #status { font-size: 12px; color: var(--muted); margin-top: 8px; }
   #syncStatus { font-size: 12px; margin-top: 6px; }
-  .filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
-  .filter-row select { margin-bottom: 0; flex: 1; }
-  .danger-btn { background: #dc2626; color: white; border: none; padding: 9px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-row select { margin-bottom: 0; flex: 1; min-width: 140px; }
+  .danger-btn { background: #dc2626; color: white; border: none; padding: 12px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; white-space: nowrap; min-height: 44px; }
   .link { color: var(--accent); cursor: pointer; }
+  input[type="checkbox"] { width: 18px; height: 18px; margin: 0; flex-shrink: 0; }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 16px 12px 50px; }
+    h1 { font-size: 19px; }
+    .card { padding: 14px; }
+    .grand { font-size: 22px; }
+    .entry { flex-direction: column; align-items: flex-start; }
+    .entry-actions { width: 100%; justify-content: space-between; margin-left: 0; margin-top: 4px; }
+    .filter-row { flex-direction: column; align-items: stretch; }
+    .filter-row select, .danger-btn { width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -67,7 +84,7 @@
       <div id="lastSyncedMini" class="sub" style="margin-bottom:14px"></div>
 
       <label>Amount (₹)</label>
-      <input type="number" id="amount" placeholder="e.g. 450" step="0.01">
+      <input type="number" id="amount" placeholder="e.g. 450" step="0.01" inputmode="decimal">
 
       <label>Category</label>
       <div class="cat-picker" id="catPicker"></div>
@@ -93,30 +110,19 @@
       <div class="grand" id="grandTotal">₹0</div>
       <div class="sub">Total spent</div>
     </div>
-    <div class="card">
-      <strong>Totals by Category</strong>
-      <div id="catTotals" style="margin-top:12px"></div>
-    </div>
-    <div class="card">
-      <strong>Totals by Person</strong>
-      <div id="userTotals" style="margin-top:12px"></div>
-    </div>
-    <div class="card">
-      <strong>Monthly Trend</strong>
-      <div id="monthTrend" style="margin-top:12px"></div>
-    </div>
+    <div class="card"><strong>Totals by Category</strong><div id="catTotals" style="margin-top:12px"></div></div>
+    <div class="card"><strong>Totals by Person</strong><div id="userTotals" style="margin-top:12px"></div></div>
+    <div class="card"><strong>Monthly Trend</strong><div id="monthTrend" style="margin-top:12px"></div></div>
   </div>
 
   <!-- HISTORY TAB -->
   <div id="history" class="tab-panel" style="display:none">
     <div class="card">
       <div id="lastSynced" class="sub" style="margin-bottom:12px"></div>
-
       <div class="filter-row">
         <select id="userFilter"><option value="all">All family members</option></select>
         <button id="deleteSelectedBtn" class="danger-btn">Delete Selected</button>
       </div>
-
       <div id="entryList"></div>
     </div>
     <button class="primary" id="exportBtn">⬇ Export as Spreadsheet (CSV)</button>
@@ -124,24 +130,26 @@
 </div>
 
 <script>
-// =====================================================================
-// CONFIG — paste your deployed Apps Script Web App URL here
-// =====================================================================
-const SHEET_SYNC_URL = 'https://script.google.com/macros/s/AKfycbzoDSwnUgwXFfg4TPG8AJSuSVbKXgjsnV7yHRWd17UxASlSWrMEZfjqg4ti81pX2d-n/exec';
+const SHEET_SYNC_URL = https://script.google.com/macros/s/AKfycbzoDSwnUgwXFfg4TPG8AJSuSVbKXgjsnV7yHRWd17UxASlSWrMEZfjqg4ti81pX2d-n/exec;
+const ADMIN_USER = 'Animesh';
+const DEFAULT_CATEGORIES = ["Food","Travel","Utilities","Shopping","Health","Entertainment","Rent","Other"];
 
-const CATEGORIES = ["Food","Travel","Utilities","Shopping","Health","Entertainment","Rent","Other"];
-
-let myEntries = [];          // entries added on this device
-let remoteEntries = [];      // combined entries pulled from the Sheet
+let CATEGORIES = [...DEFAULT_CATEGORIES];
+let myEntries = [];
+let remoteEntries = [];
 let selectedCat = CATEGORIES[0];
 let syncQueue = [];
 let isSyncing = false;
 let flushTimer = null;
 let lastSyncedAt = localStorage.getItem('lastSyncedAt') || null;
 let currentUser = localStorage.getItem('currentUser') || null;
-let activeUserFilter = 'all';       // History tab filter
-let activeUserFilterAnalysis = 'all'; // Analysis tab filter
+let activeUserFilter = 'all';
+let activeUserFilterAnalysis = 'all';
 let selectedIds = new Set();
+
+function isAdmin() {
+  return currentUser && currentUser.trim().toLowerCase() === ADMIN_USER.toLowerCase();
+}
 
 // ---------- User identity ----------
 function ensureUser() {
@@ -153,7 +161,7 @@ function ensureUser() {
 }
 document.getElementById('changeUserBtn').onclick = () => {
   const name = prompt("Change your name:", currentUser);
-  if (name) { currentUser = name; localStorage.setItem('currentUser', currentUser); ensureUser(); }
+  if (name) { currentUser = name; localStorage.setItem('currentUser', currentUser); ensureUser(); renderCatPicker(); renderHistory(); }
 };
 
 // ---------- Local persistence ----------
@@ -161,15 +169,13 @@ function loadEntries() {
   const raw = localStorage.getItem('myExpenses');
   myEntries = raw ? JSON.parse(raw) : [];
 }
-function persistEntries() {
-  localStorage.setItem('myExpenses', JSON.stringify(myEntries));
-}
+function persistEntries() { localStorage.setItem('myExpenses', JSON.stringify(myEntries)); }
 
 // ---------- Combined dataset ----------
 function combinedEntries() {
   const map = new Map();
   remoteEntries.forEach(e => map.set(e.id, e));
-  myEntries.forEach(e => { if (!map.has(e.id)) map.set(e.id, e); }); // include not-yet-synced local entries
+  myEntries.forEach(e => { if (!map.has(e.id)) map.set(e.id, e); });
   return [...map.values()].sort((a,b) => new Date(b.date) - new Date(a.date));
 }
 
@@ -179,6 +185,8 @@ async function fetchRemoteEntries() {
     const result = await res.json();
     if (result.status === 'ok') {
       remoteEntries = result.entries;
+      if (result.categories && result.categories.length) CATEGORIES = result.categories;
+      if (document.getElementById('add').style.display !== 'none') renderCatPicker();
       if (document.getElementById('history').style.display !== 'none') renderHistory();
       if (document.getElementById('analysis').style.display !== 'none') renderAnalysis();
     }
@@ -196,9 +204,7 @@ async function attemptSync() {
   const batch = [...syncQueue];
   try {
     const res = await fetch(SHEET_SYNC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(batch)
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(batch)
     });
     const result = await res.json();
     if (result.status === 'ok') {
@@ -215,7 +221,6 @@ async function attemptSync() {
     updateSyncStatus('⚠ Sync failed — will retry automatically', true);
   } finally { isSyncing = false; }
 }
-
 setInterval(() => {
   const unsynced = myEntries.filter(e => !e.synced);
   if (unsynced.length) { syncQueue = [...new Set([...syncQueue, ...unsynced])]; attemptSync(); }
@@ -225,8 +230,7 @@ setInterval(renderSyncIndicators, 30000);
 function updateSyncStatus(msg, isError = false) {
   const el = document.getElementById('syncStatus');
   if (!el) return;
-  el.textContent = msg;
-  el.style.color = isError ? '#dc2626' : '#22c55e';
+  el.textContent = msg; el.style.color = isError ? '#dc2626' : '#22c55e';
   setTimeout(() => el.textContent = '', 4000);
 }
 
@@ -254,10 +258,11 @@ function formatRelativeTime(isoString) {
   return `${Math.floor(hr / 24)}d ago`;
 }
 
-// ---------- Category picker ----------
+// ---------- Category picker (with admin "add category") ----------
 function renderCatPicker() {
   const el = document.getElementById('catPicker');
   el.innerHTML = '';
+  if (!CATEGORIES.includes(selectedCat)) selectedCat = CATEGORIES[0];
   CATEGORIES.forEach(cat => {
     const chip = document.createElement('div');
     chip.className = 'chip' + (cat === selectedCat ? ' selected' : '');
@@ -265,6 +270,80 @@ function renderCatPicker() {
     chip.onclick = () => { selectedCat = cat; renderCatPicker(); };
     el.appendChild(chip);
   });
+  if (isAdmin()) {
+    const addChip = document.createElement('div');
+    addChip.className = 'chip add-chip';
+    addChip.textContent = '+ Add category';
+    addChip.onclick = addNewCategory;
+    el.appendChild(addChip);
+  }
+}
+
+async function addNewCategory() {
+  const name = prompt('New category name:');
+  if (!name || !name.trim()) return;
+  if (CATEGORIES.some(c => c.toLowerCase() === name.trim().toLowerCase())) {
+    alert('That category already exists.');
+    return;
+  }
+  try {
+    const res = await fetch(SHEET_SYNC_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'addCategory', category: name.trim(), user: currentUser })
+    });
+    const result = await res.json();
+    if (result.status === 'ok') {
+      CATEGORIES = result.categories;
+      selectedCat = name.trim();
+      renderCatPicker();
+      updateSyncStatus('✓ Category added');
+    } else {
+      alert('Could not add category: ' + result.message);
+    }
+  } catch (err) {
+    alert('Network error adding category — try again.');
+  }
+}
+
+// ---------- Editing category on an existing entry (admin only) ----------
+function openCategoryEditor(span) {
+  const id = span.dataset.id;
+  const current = span.dataset.current;
+  const select = document.createElement('select');
+  select.className = 'cat-edit-select';
+  CATEGORIES.forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat; opt.textContent = cat;
+    if (cat === current) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.onchange = () => updateCategoryOnServer(id, select.value);
+  select.onblur = () => renderHistory(); // revert to badge view if no change made
+  span.replaceWith(select);
+  select.focus();
+}
+
+async function updateCategoryOnServer(id, category) {
+  // optimistic local update
+  const local = myEntries.find(e => e.id === id);
+  if (local) local.category = category;
+  const remote = remoteEntries.find(e => e.id === id);
+  if (remote) remote.category = category;
+  persistEntries();
+  renderHistory();
+  renderAnalysis();
+
+  try {
+    const res = await fetch(SHEET_SYNC_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'updateCategory', id, category, user: currentUser })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    updateSyncStatus('✓ Category updated');
+  } catch (err) {
+    updateSyncStatus('⚠ Category change failed to sync — local only for now', true);
+  }
 }
 
 // ---------- Tabs ----------
@@ -307,8 +386,7 @@ function populateUserFilters() {
   const users = [...new Set(combinedEntries().map(e => e.user))].sort();
   [['userFilter', activeUserFilter], ['userFilterAnalysis', activeUserFilterAnalysis]].forEach(([id, current]) => {
     const select = document.getElementById(id);
-    select.innerHTML = '<option value="all">All family members</option>' +
-      users.map(u => `<option value="${u}">${u}</option>`).join('');
+    select.innerHTML = '<option value="all">All family members</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
     select.value = users.includes(current) ? current : 'all';
   });
 }
@@ -362,7 +440,7 @@ function renderHistory() {
         <input type="checkbox" data-id="${e.id}" ${selectedIds.has(e.id) ? 'checked' : ''}>
         <div>
           <span class="sync-dot ${e.synced ? 'done' : 'pending'}"></span>
-          <span class="entry-cat">${e.category}</span>
+          <span class="entry-cat${isAdmin() ? ' editable-cat' : ''}" ${isAdmin() ? `data-id="${e.id}" data-current="${e.category}"` : ''}>${e.category}${isAdmin() ? ' ✎' : ''}</span>
           <strong>${e.user}</strong> — ${e.note ? e.note : ''}
           <div class="sub" style="margin:0">${e.date}</div>
         </div>
@@ -376,12 +454,13 @@ function renderHistory() {
   document.querySelectorAll('#entryList input[type="checkbox"]').forEach(cb => {
     cb.onchange = () => { cb.checked ? selectedIds.add(cb.dataset.id) : selectedIds.delete(cb.dataset.id); };
   });
-  document.querySelectorAll('.del-btn').forEach(btn => {
-    btn.onclick = () => deleteEntries([btn.dataset.del]);
-  });
+  document.querySelectorAll('.del-btn').forEach(btn => { btn.onclick = () => deleteEntries([btn.dataset.del]); });
+  if (isAdmin()) {
+    document.querySelectorAll('.editable-cat').forEach(span => { span.onclick = () => openCategoryEditor(span); });
+  }
 }
 
-// ---------- Delete (single + bulk) ----------
+// ---------- Delete ----------
 document.getElementById('deleteSelectedBtn').onclick = () => {
   if (selectedIds.size === 0) { alert('Select at least one entry first.'); return; }
   deleteEntries([...selectedIds]);
@@ -389,18 +468,15 @@ document.getElementById('deleteSelectedBtn').onclick = () => {
 
 async function deleteEntries(ids) {
   if (!confirm(`Delete ${ids.length} entr${ids.length > 1 ? 'ies' : 'y'}? This can't be undone.`)) return;
-
   myEntries = myEntries.filter(e => !ids.includes(e.id));
   remoteEntries = remoteEntries.filter(e => !ids.includes(e.id));
   persistEntries();
   ids.forEach(id => selectedIds.delete(id));
   renderHistory();
   renderAnalysis();
-
   try {
     const res = await fetch(SHEET_SYNC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'delete', ids })
     });
     const result = await res.json();
